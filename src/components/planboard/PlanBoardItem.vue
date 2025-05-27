@@ -283,6 +283,54 @@ const formatDate = (dateStr) => {
   font-weight: 600;
 }
 
+/* 공개/비공개 상태 배지 스타일 */
+.visibility-status {
+  display: flex;
+  align-items: center;
+}
+
+.public-badge,
+.private-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.public-badge {
+  background: rgba(40, 167, 69, 0.9);
+  color: white;
+}
+
+.private-badge {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+
+.public-badge-small,
+.private-badge-small {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.public-badge-small {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.private-badge-small {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
 .featured-badge {
   position: absolute;
   top: 10px;
@@ -502,6 +550,7 @@ const formatDate = (dateStr) => {
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .duration-badge {

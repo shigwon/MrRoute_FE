@@ -1,19 +1,42 @@
-// src/api/planboard.js
+// src/api/planboard.js - 수정된 버전
 import apiClient from "./index";
 
 export default {
-  // 게시글 목록 조회
-  getPlanBoards(params) {
-    return apiClient.get("/planboards", { params });
+  // 게시글 목록 조회 - 파라미터 처리 개선
+  getPlanBoards(params = {}) {
+    console.log("getPlanBoards 호출됨:", params);
+
+    // 빈 값들 제거
+    const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined && value !== "") {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+
+    console.log("정리된 파라미터:", cleanParams);
+
+    return apiClient
+      .get("/planboards", { params: cleanParams })
+      .then((response) => {
+        console.log("API 응답:", response.data);
+        return response;
+      })
+      .catch((error) => {
+        console.error("API 에러:", error);
+        throw error;
+      });
   },
 
   // 게시글 상세 조회
   getPlanBoardDetail(pboardNo) {
+    console.log("getPlanBoardDetail 호출됨:", pboardNo);
     return apiClient.get(`/planboards/${pboardNo}`);
   },
 
   // 게시글 작성
   createPlanBoard(planBoardData) {
+    console.log("createPlanBoard 호출됨:", planBoardData);
     return apiClient.post("/planboards", planBoardData);
   },
 

@@ -36,4 +36,8 @@ export default {
   getRecentNotices(limit = 5) {
     return apiClient.get("/notices/recent", { params: { limit } });
   },
+  // 공지사항 조회수 증가
+  increaseViewCount(nno) {
+    return apiClient.post(`/notices/${nno}/view`);
+  },
 };

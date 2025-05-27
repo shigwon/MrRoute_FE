@@ -96,7 +96,7 @@
           </div>
 
           <!-- 액션 버튼 -->
-          <div class="post-actions">
+          <div class="post-actions" style="margin-top: 25px">
             <button
               class="action-btn like-btn"
               :class="{ active: post.isLiked }"
