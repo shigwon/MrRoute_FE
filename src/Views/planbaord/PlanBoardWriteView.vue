@@ -262,7 +262,159 @@
                     <div class="form-text">{{ form.content.length }}/5000자</div>
                   </div>
                 </div>
+                <!-- 1. 본문 내용 입력 부분 다음에 추가할 HTML (line 220 정도) -->
+                <!-- 본문 내용 다음에 바로 추가 -->
+                <!-- ✨ 새로 추가: 선택된 여행 계획의 상세 일정 미리보기 -->
+                <div
+                  v-if="selectedPlan && selectedPlan.details && selectedPlan.details.length > 0"
+                  class="travel-schedule-preview mb-4"
+                >
+                  <!-- 여행 일정 개요 섹션 -->
+                  <div class="row mb-4">
+                    <div class="col-md-8">
+                      <div class="card">
+                        <div class="card-header bg-light">
+                          <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            여행 일정 개요
+                          </h5>
+                        </div>
+                        <div class="card-body">
+                          <div class="timeline">
+                            <div
+                              v-for="day in planDayCount"
+                              :key="day"
+                              class="timeline-item"
+                              :class="{ 'timeline-item-active': selectedPlanDay === day }"
+                              @click="selectedPlanDay = day"
+                            >
+                              <div class="timeline-date">
+                                <span class="timeline-day">{{ day }}일차</span>
+                                <span class="timeline-full-date">{{ getPlanDayDate(day) }}</span>
+                              </div>
+                              <div class="timeline-content">
+                                <div v-if="getPlanDayDetails(day).length === 0" class="text-muted">일정 없음</div>
+                                <div v-else>
+                                  <div
+                                    v-for="(detail, index) in getPlanDayDetails(day)"
+                                    :key="index"
+                                    class="timeline-item-brief"
+                                  >
+                                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                    {{ detail.title }}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
+                    <div class="col-md-4">
+                      <!-- 여행 정보 카드 -->
+                      <div class="card mb-3">
+                        <div class="card-header bg-light">
+                          <h6 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            여행 정보
+                          </h6>
+                        </div>
+                        <div class="card-body">
+                          <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                              <span><i class="fas fa-calendar me-2"></i> 기간</span>
+                              <span class="badge bg-primary rounded-pill">{{ planDayCount }}일</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                              <span><i class="fas fa-map-marked-alt me-2"></i> 방문 장소</span>
+                              <span class="badge bg-primary rounded-pill">{{ planTotalPlaces }}곳</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                              <span><i class="fas fa-route me-2"></i> 여행 계획</span>
+                              <span>{{ selectedPlan.title }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 선택된 일차 상세 정보 -->
+                  <div class="card mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0">{{ selectedPlanDay }}일차 상세 일정 ({{ getPlanDayDate(selectedPlanDay) }})</h5>
+                      <div class="btn-group"></div>
+                    </div>
+                    <div class="card-body">
+                      <div v-if="getPlanDayDetails(selectedPlanDay).length === 0" class="text-center py-4">
+                        <p class="text-muted mb-3">이 날짜에 계획된 일정이 없습니다.</p>
+                      </div>
+                      <div v-else>
+                        <div class="day-detail-timeline">
+                          <div
+                            v-for="(detail, index) in getPlanDayDetails(selectedPlanDay)"
+                            :key="index"
+                            class="day-detail-item"
+                          >
+                            <div class="day-detail-time">
+                              {{ formatPlanTime(detail.visitTime) }}
+                              <div class="day-detail-duration text-muted">
+                                {{ formatPlanDuration(detail.stayDuration) }}
+                              </div>
+                            </div>
+                            <div class="day-detail-content">
+                              <h5>{{ detail.title }}</h5>
+                              <p v-if="detail.description" class="mb-2">{{ detail.description }}</p>
+
+                              <div v-if="detail.attractionId" class="attraction-info">
+                                <div v-if="detail.attraction" class="card mb-3">
+                                  <div class="row g-0">
+                                    <div class="col-md-4">
+                                      <img
+                                        :src="detail.attraction.firstImage1 || '/img/no-image.jpg'"
+                                        class="img-fluid rounded-start"
+                                        :alt="detail.attraction.title"
+                                        style="height: 100px; object-fit: cover"
+                                      />
+                                    </div>
+                                    <div class="col-md-8">
+                                      <div class="card-body">
+                                        <h6 class="card-title">{{ detail.attraction.title }}</h6>
+                                        <p class="card-text">
+                                          <small class="text-muted">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            {{ detail.attraction.sido }} {{ detail.attraction.gugun }}
+                                          </small>
+                                        </p>
+                                        <p class="card-text attraction-overview-small">
+                                          {{ detail.attraction.overview }}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 지도 섹션 -->
+                  <div class="card mb-4">
+                    <div class="card-header bg-white">
+                      <h5 class="mb-0">
+                        <i class="fas fa-map me-2"></i>
+                        {{ selectedPlanDay }}일차 경로
+                      </h5>
+                    </div>
+                    <div class="card-body p-0">
+                      <div id="writeMap" style="height: 300px"></div>
+                    </div>
+                  </div>
+                </div>
                 <!-- 폼 액션 버튼 -->
                 <div class="card-footer bg-light">
                   <div class="d-flex justify-content-between">
@@ -453,10 +605,17 @@ import { useAuthStore } from "@/stores/auth";
 import planboardAPI from "@/api/planboard";
 import PlanSelector from "@/components/planboard/PlanSelector.vue";
 import PlanBoardTags from "@/components/planboard/PlanBoardTags.vue";
+import attractionAPI from "@/api/attraction";
+import planAPI from "@/api/plan";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+
+// ✨ 새로 추가: 여행 일정 미리보기 관련 상태
+const selectedPlanDay = ref(1);
+let writeMap = null;
+let writeMapMarkers = [];
 
 // 상태 관리
 const isEdit = computed(() => !!route.params.pboardNo);
@@ -528,7 +687,7 @@ const groupedSchedule = computed(() => {
 });
 
 // 메서드
-const handlePlanSelected = (plan) => {
+const handlePlanSelected = async (plan) => {
   selectedPlan.value = plan;
 
   // 폼에 여행 계획 정보 자동 입력
@@ -547,11 +706,204 @@ const handlePlanSelected = (plan) => {
     if (!form.value.title) {
       form.value.title = `${plan.title} 여행기`;
     }
+
+    // ✨ 새로 추가: 관광지 정보 로드
+    await loadPlanAttractionDetails();
+
+    // 선택된 일차가 유효한지 확인
+    if (selectedPlanDay.value > planDayCount.value) {
+      selectedPlanDay.value = 1;
+    }
+
+    // 지도 초기화
+    setTimeout(() => {
+      initializeWriteMap();
+      updateWriteMapMarkers();
+    }, 1000);
   }
 };
 
 const handleSelectionCancelled = () => {
   selectedPlan.value = null;
+};
+
+const loadPlanAttractionDetails = async () => {
+  try {
+    if (!selectedPlan.value || !selectedPlan.value.details) return;
+
+    const attractionIds = selectedPlan.value.details
+      .filter((detail) => detail.attractionId)
+      .map((detail) => detail.attractionId);
+
+    if (attractionIds.length === 0) return;
+
+    const promises = attractionIds.map((id) => attractionAPI.getAttractionDetail(id));
+    const responses = await Promise.allSettled(promises);
+
+    responses.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        const attraction = result.value.data;
+        selectedPlan.value.details.forEach((detail) => {
+          if (detail.attractionId === attraction.no) {
+            detail.attraction = attraction;
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.error("관광지 정보 로드 중 오류 발생:", error);
+  }
+};
+
+// ✨ 새로 추가: 특정 일차의 세부 일정 가져오기
+const getPlanDayDetails = (day) => {
+  if (!selectedPlan.value || !selectedPlan.value.details) return [];
+
+  return selectedPlan.value.details
+    .filter((detail) => detail.dayNumber === day)
+    .sort((a, b) => {
+      if (a.visitTime && b.visitTime) {
+        return a.visitTime.localeCompare(b.visitTime);
+      } else if (a.visitTime) {
+        return -1;
+      } else if (b.visitTime) {
+        return 1;
+      } else {
+        return (a.orderNo || 0) - (b.orderNo || 0);
+      }
+    });
+};
+
+// ✨ 새로 추가: 특정 일차의 날짜 계산
+const getPlanDayDate = (day) => {
+  if (!selectedPlan.value || !selectedPlan.value.startDate) return "";
+
+  const start = new Date(selectedPlan.value.startDate);
+  const dayDate = new Date(start);
+  dayDate.setDate(start.getDate() + day - 1);
+
+  return dayDate.toLocaleDateString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
+};
+
+// ✨ 새로 추가: 시간 포맷
+const formatPlanTime = (timeStr) => {
+  if (!timeStr) return "";
+  return timeStr.substring(0, 5);
+};
+
+// ✨ 새로 추가: 소요 시간 포맷
+const formatPlanDuration = (minutes) => {
+  if (!minutes) return "";
+
+  if (minutes < 60) {
+    return `${minutes}분`;
+  } else {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (remainingMinutes === 0) {
+      return `${hours}시간`;
+    } else {
+      return `${hours}시간 ${remainingMinutes}분`;
+    }
+  }
+};
+
+// ✨ 새로 추가: 지도 초기화
+const initializeWriteMap = () => {
+  if (!window.kakao || !window.kakao.maps) return;
+
+  const mapContainer = document.getElementById("writeMap");
+  if (!mapContainer) return;
+
+  const mapOption = {
+    center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+    level: 7,
+  };
+
+  writeMap = new window.kakao.maps.Map(mapContainer, mapOption);
+};
+
+// ✨ 새로 추가: 지도에 마커 표시
+const updateWriteMapMarkers = () => {
+  if (!writeMap || !window.kakao) return;
+
+  // 기존 마커 제거
+  writeMapMarkers.forEach((marker) => marker.setMap(null));
+  writeMapMarkers = [];
+
+  // 선택된 일차의 세부 일정 가져오기
+  const dayDetails = getPlanDayDetails(selectedPlanDay.value);
+
+  // 관광지가 있는 일정만 필터링
+  const locations = dayDetails
+    .filter((detail) => detail.attraction && detail.attraction.latitude && detail.attraction.longitude)
+    .map((detail, index) => ({
+      title: detail.title,
+      lat: parseFloat(detail.attraction.latitude),
+      lng: parseFloat(detail.attraction.longitude),
+      order: index + 1,
+    }));
+
+  if (locations.length === 0) return;
+
+  // 마커 생성
+  const bounds = new window.kakao.maps.LatLngBounds();
+
+  locations.forEach((location) => {
+    const position = new window.kakao.maps.LatLng(location.lat, location.lng);
+
+    // 마커 생성
+    const marker = new window.kakao.maps.Marker({
+      position: position,
+      map: writeMap,
+    });
+
+    // 인포윈도우 생성
+    const content = `
+        <div style="padding:5px; width:150px; text-align:center; font-size:12px;">
+          <strong>${location.order}. ${location.title}</strong>
+        </div>
+      `;
+
+    const infowindow = new window.kakao.maps.InfoWindow({
+      content: content,
+      removable: true,
+    });
+
+    // 마커 클릭 시 인포윈도우 표시
+    window.kakao.maps.event.addListener(marker, "click", function () {
+      infowindow.open(writeMap, marker);
+    });
+
+    // 배열에 마커 추가
+    writeMapMarkers.push(marker);
+
+    // 지도 범위에 포함
+    bounds.extend(position);
+  });
+
+  // 경로선 그리기
+  if (locations.length > 1) {
+    const linePath = locations.map((location) => new window.kakao.maps.LatLng(location.lat, location.lng));
+
+    const polyline = new window.kakao.maps.Polyline({
+      path: linePath,
+      strokeWeight: 3,
+      strokeColor: "#5882FA",
+      strokeOpacity: 0.7,
+      strokeStyle: "solid",
+    });
+
+    polyline.setMap(writeMap);
+  }
+
+  // 지도 범위 설정
+  writeMap.setBounds(bounds);
 };
 
 const changePlan = () => {
@@ -721,7 +1073,7 @@ const handleCancel = () => {
   }
 };
 
-// loadExistingPost 함수에서 기존 데이터 로드시 isPublic도 포함
+// loadExistingPost 함수에서 기존 데이터 로드시 여행 계획 정보도 함께 로드
 const loadExistingPost = async () => {
   if (isEdit.value) {
     try {
@@ -750,6 +1102,33 @@ const loadExistingPost = async () => {
         }));
       }
 
+      // 🔥 수정: 여행 계획이 있는 경우 해당 계획 정보를 로드
+      if (post.planId) {
+        try {
+          // 여행 계획 상세 정보 가져오기
+          const planResponse = await planAPI.getPlanDetail(post.planId);
+          selectedPlan.value = planResponse.data;
+
+          // 여행 계획의 관광지 정보도 로드
+          await loadPlanAttractionDetails();
+
+          // 선택된 일차가 유효한지 확인
+          if (selectedPlanDay.value > planDayCount.value) {
+            selectedPlanDay.value = 1;
+          }
+
+          // 지도 초기화 (약간의 지연 후)
+          setTimeout(() => {
+            initializeWriteMap();
+            updateWriteMapMarkers();
+          }, 1000);
+        } catch (planError) {
+          console.error("여행 계획 로드 오류:", planError);
+          // 여행 계획 로드에 실패해도 게시글 수정은 가능하도록 처리
+          selectedPlan.value = null;
+        }
+      }
+
       showDirectWrite.value = true;
     } catch (error) {
       console.error("게시글 로드 오류:", error);
@@ -758,6 +1137,30 @@ const loadExistingPost = async () => {
     }
   }
 };
+
+// ✨ 새로 추가: 여행 계획 관련 computed
+// 일수 계산
+const planDayCount = computed(() => {
+  if (!selectedPlan.value || !selectedPlan.value.startDate || !selectedPlan.value.endDate) return 0;
+
+  const start = new Date(selectedPlan.value.startDate);
+  const end = new Date(selectedPlan.value.endDate);
+  const diffTime = Math.abs(end - start);
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+});
+
+// 총 방문 장소 수
+const planTotalPlaces = computed(() => {
+  if (!selectedPlan.value || !selectedPlan.value.details) return 0;
+  return selectedPlan.value.details.filter((detail) => !!detail.title).length;
+});
+
+// ✨ 새로 추가: 선택된 일자가 변경될 때 지도 업데이트
+watch(selectedPlanDay, () => {
+  setTimeout(() => {
+    updateWriteMapMarkers();
+  }, 100);
+});
 
 // 라이프사이클
 onMounted(async () => {
@@ -1919,5 +2322,121 @@ textarea.form-control {
   .toggle-description {
     font-size: 0.8rem;
   }
+}
+
+/* ✨ 새로 추가: 여행 일정 미리보기 스타일 */
+.travel-schedule-preview {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.travel-schedule-preview .timeline {
+  position: relative;
+  margin: 0 0 30px 0;
+}
+
+.travel-schedule-preview .timeline-item {
+  position: relative;
+  padding: 12px 0;
+  border-left: 2px solid #e9ecef;
+  padding-left: 20px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.travel-schedule-preview .timeline-item:hover {
+  background-color: #f8f9fa;
+}
+
+.travel-schedule-preview .timeline-item-active {
+  border-left: 2px solid #0d6efd;
+  background-color: #e9f0ff;
+}
+
+.travel-schedule-preview .timeline-date {
+  margin-bottom: 5px;
+}
+
+.travel-schedule-preview .timeline-day {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.travel-schedule-preview .timeline-full-date {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.travel-schedule-preview .timeline-item-brief {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 3px 0;
+}
+
+.travel-schedule-preview .day-detail-timeline {
+  position: relative;
+}
+
+.travel-schedule-preview .day-detail-item {
+  display: flex;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.travel-schedule-preview .day-detail-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 30px;
+  left: 80px;
+  height: calc(100% + 30px);
+  border-left: 2px dashed #e9ecef;
+}
+
+.travel-schedule-preview .day-detail-time {
+  min-width: 80px;
+  font-weight: bold;
+  text-align: center;
+  padding-top: 5px;
+}
+
+.travel-schedule-preview .day-detail-duration {
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.travel-schedule-preview .day-detail-content {
+  flex: 1;
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-left: 20px;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.travel-schedule-preview .day-detail-content::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: -10px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 10px solid white;
+}
+
+.travel-schedule-preview .attraction-overview-small {
+  max-height: 3em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 0.85rem;
 }
 </style>
