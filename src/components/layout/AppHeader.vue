@@ -11,7 +11,10 @@
           <li>
             <router-link :to="{ name: 'attractions' }">관광지 검색</router-link>
           </li>
-          <li><router-link :to="{ name: 'board-list' }">여행 커뮤니티</router-link></li>
+          <li><router-link :to="{ name: 'board-list' }">게시판</router-link></li>
+          <li>
+  <router-link :to="{ name: 'notice-list' }">공지사항</router-link>
+</li>
           <li v-if="isLoggedIn">
             <router-link :to="{ name: 'plans' }">내 여행 계획 보기</router-link>
           </li>
@@ -65,11 +68,6 @@
 
           <!-- 로그인한 경우 -->
           <template v-else>
-            <!-- 관리자인 경우 (여기에 로그 추가) -->
-            <li v-if="isAdmin">
-              <router-link :to="{ name: 'admin-members' }">회원 관리</router-link>
-            </li>
-
             <!-- 사용자 메뉴 -->
             <li class="user-menu">
               <button class="user-menu-btn" @click="toggleUserMenu">

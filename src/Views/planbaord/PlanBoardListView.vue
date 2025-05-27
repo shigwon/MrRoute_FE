@@ -171,6 +171,7 @@
 </template>
 
 <script setup>
+// PlanBoardListView.vue의 script 부분 수정
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
@@ -195,6 +196,7 @@ const viewMode = ref("grid");
 const sortBy = ref("latest");
 
 // 필터 상태
+// filters 객체에 onlyMyPosts 필드 추가
 const filters = ref({
   keyword: "",
   travelTheme: "",
@@ -205,6 +207,7 @@ const filters = ref({
   budgetMax: null,
   participantCount: null,
   tagName: "",
+  onlyMyPosts: false, // 추가
 });
 
 // 계산된 속성
@@ -212,10 +215,11 @@ const hasActiveFilters = computed(() => {
   return Object.values(filters.value).some((value) => value !== "" && value !== null);
 });
 
-// 메서드
+// 메서드 수정
 const loadPosts = async () => {
   try {
     loading.value = true;
+    console.log("loadPosts 시작");
 
     const params = {
       currentPage: currentPage.value,
@@ -223,21 +227,59 @@ const loadPosts = async () => {
       ...filters.value,
     };
 
-    // 빈 값 제거
-    Object.keys(params).forEach((key) => {
-      if (params[key] === "" || params[key] === null) {
-        delete params[key];
-      }
-    });
+    console.log("API 호출 파라미터:", params);
 
     const response = await planboardAPI.getPlanBoards(params);
+    console.log("API 응답 전체:", response);
+    console.log("API 응답 데이터:", response.data);
 
-    posts.value = response.data.list || [];
-    totalItems.value = response.data.totalCount || 0;
-    totalPages.value = response.data.totalPages || 0;
-    currentPage.value = response.data.currentPage || 1;
+    // 응답 데이터 구조 확인 및 처리
+    if (response.data) {
+      // 응답이 배열인 경우
+      if (Array.isArray(response.data)) {
+        posts.value = response.data;
+        totalItems.value = response.data.length;
+        totalPages.value = 1;
+        currentPage.value = 1;
+      }
+      // 응답이 객체인 경우 (페이징 정보 포함)
+      else if (response.data.list || response.data.content || response.data.data) {
+        posts.value = response.data.list || response.data.content || response.data.data || [];
+        totalItems.value = response.data.totalCount || response.data.totalElements || response.data.total || 0;
+        totalPages.value = response.data.totalPages || Math.ceil(totalItems.value / 10) || 1;
+        currentPage.value = response.data.currentPage || response.data.page || 1;
+      }
+      // 단순 객체 응답인 경우
+      else {
+        posts.value = [response.data];
+        totalItems.value = 1;
+        totalPages.value = 1;
+        currentPage.value = 1;
+      }
+    } else {
+      posts.value = [];
+      totalItems.value = 0;
+      totalPages.value = 0;
+    }
+
+    console.log("처리된 posts:", posts.value);
+    console.log("totalItems:", totalItems.value);
   } catch (error) {
     console.error("게시글 목록 로드 오류:", error);
+
+    // 에러 상세 정보 로깅
+    if (error.response) {
+      console.error("응답 상태:", error.response.status);
+      console.error("응답 데이터:", error.response.data);
+    }
+
+    // 에러 시 빈 배열로 설정
+    posts.value = [];
+    totalItems.value = 0;
+    totalPages.value = 0;
+
+    // 사용자에게 알림
+    alert("게시글을 불러오는 중 오류가 발생했습니다. 새로고침해주세요.");
   } finally {
     loading.value = false;
   }
@@ -245,22 +287,29 @@ const loadPosts = async () => {
 
 const loadFeaturedPosts = async () => {
   try {
+    console.log("loadFeaturedPosts 시작");
     const response = await planboardAPI.getFeaturedPlanBoards(6);
+    console.log("추천 게시글 응답:", response.data);
     featuredPosts.value = response.data || [];
   } catch (error) {
     console.error("추천 게시글 로드 오류:", error);
+    featuredPosts.value = [];
   }
 };
 
 const loadPopularTags = async () => {
   try {
+    console.log("loadPopularTags 시작");
     const response = await planboardAPI.getPopularTags(10);
+    console.log("인기 태그 응답:", response.data);
     popularTags.value = response.data || [];
   } catch (error) {
     console.error("인기 태그 로드 오류:", error);
+    popularTags.value = [];
   }
 };
 
+// 나머지 메서드들...
 const updateFilters = (newFilters) => {
   filters.value = { ...filters.value, ...newFilters };
   currentPage.value = 1;
@@ -273,6 +322,7 @@ const searchPosts = (searchData) => {
   loadPosts();
 };
 
+// resetFilters 함수에도 추가
 const resetFilters = () => {
   filters.value = {
     keyword: "",
@@ -284,6 +334,7 @@ const resetFilters = () => {
     budgetMax: null,
     participantCount: null,
     tagName: "",
+    onlyMyPosts: false, // 추가
   };
   currentPage.value = 1;
   sortBy.value = "latest";
@@ -299,8 +350,6 @@ const filterByTag = (tagName) => {
 const changePage = (page) => {
   currentPage.value = page;
   loadPosts();
-
-  // 페이지 상단으로 스크롤
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
@@ -317,8 +366,6 @@ const toggleLike = async (pboardNo) => {
 
   try {
     const response = await planboardAPI.toggleLike(pboardNo);
-
-    // 게시글 목록에서 좋아요 상태 업데이트
     const postIndex = posts.value.findIndex((post) => post.pboardNo === pboardNo);
     if (postIndex !== -1) {
       posts.value[postIndex].isLiked = response.data.isLiked;
@@ -339,17 +386,31 @@ const getDefaultThumbnail = (travelTheme) => {
     도시: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000",
     맛집: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",
   };
-
   return thumbnails[travelTheme] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828";
 };
 
-// 라이프사이클
+// 라이프사이클 - 에러 처리 개선
 onMounted(async () => {
-  await Promise.all([loadPosts(), loadFeaturedPosts(), loadPopularTags()]);
+  console.log("컴포넌트 마운트됨");
+
+  try {
+    // 순차적으로 로드하여 에러 발생 지점 확인
+    await loadPosts();
+    console.log("메인 게시글 로드 완료");
+
+    // 추천 게시글과 인기 태그는 실패해도 메인 기능에 영향 없음
+    await loadFeaturedPosts().catch((err) => console.warn("추천 게시글 로드 실패:", err));
+    await loadPopularTags().catch((err) => console.warn("인기 태그 로드 실패:", err));
+
+    console.log("모든 데이터 로드 완료");
+  } catch (error) {
+    console.error("컴포넌트 초기화 중 오류:", error);
+  }
 });
 
 // 정렬 변경 감지
 watch(sortBy, () => {
+  console.log("정렬 방식 변경:", sortBy.value);
   currentPage.value = 1;
   loadPosts();
 });

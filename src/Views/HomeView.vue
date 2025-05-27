@@ -108,7 +108,72 @@
         </div>
       </div>
     </section>
+    <!-- HomeView.vue에 추가할 공지사항 섹션 -->
+    <section class="notices-section">
+      <div class="container">
+        <div class="row align-items-center mb-4">
+          <div class="col">
+            <h2><i class="fas fa-bullhorn text-primary me-2"></i>공지사항</h2>
+          </div>
+          <div class="col-auto">
+            <router-link to="/notices" class="btn btn-outline-primary btn-sm">
+              전체보기 <i class="fas fa-arrow-right ms-1"></i>
+            </router-link>
+          </div>
+        </div>
 
+        <!-- 중요 공지사항 -->
+        <div v-if="importantNotices.length > 0" class="important-notices mb-4">
+          <div class="alert alert-warning">
+            <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>중요 공지사항</h6>
+            <div v-for="notice in importantNotices" :key="notice.nno" class="important-notice-item">
+              <router-link :to="`/notices/${notice.nno}`" class="text-decoration-none text-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <i class="fas fa-star text-warning me-2"></i>
+                    {{ notice.title }}
+                  </div>
+                  <small class="text-muted">{{ formatDate(notice.regDate) }}</small>
+                </div>
+              </router-link>
+            </div>
+          </div>
+        </div>
+
+        <!-- 일반 공지사항 -->
+        <div class="recent-notices">
+          <div v-if="loadingNotices" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+          </div>
+
+          <div v-else-if="recentNotices.length === 0" class="text-center py-4">
+            <p class="text-muted mb-0">등록된 공지사항이 없습니다.</p>
+          </div>
+
+          <div v-else class="list-group">
+            <router-link
+              v-for="notice in recentNotices"
+              :key="notice.nno"
+              :to="`/notices/${notice.nno}`"
+              class="list-group-item list-group-item-action"
+            >
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="notice-title">
+                  <i v-if="notice.isImportant" class="fas fa-star text-warning me-2"></i>
+                  {{ notice.title }}
+                  <span v-if="isNew(notice.regDate)" class="badge bg-success ms-2">NEW</span>
+                </div>
+                <div class="notice-meta text-muted">
+                  <small>{{ formatDate(notice.regDate) }}</small>
+                  <span class="mx-2">·</span>
+                  <small>조회 {{ notice.viewCnt }}</small>
+                </div>
+              </div>
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="stats-section">
       <div class="container">
         <h2 class="text-center mb-5">Enjoy Trip 통계</h2>
@@ -162,6 +227,13 @@ import { useAuthStore } from "@/stores/auth";
 import attractionAPI from "@/api/attraction";
 import boardAPI from "@/api/board";
 import apiClient from "@/api";
+// HomeView.vue의 script 섹션에 추가할 코드
+import noticeAPI from "@/api/notice";
+
+// 상태 추가
+const importantNotices = ref([]);
+const recentNotices = ref([]);
+const loadingNotices = ref(false);
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -293,6 +365,15 @@ const searchCityAttractions = (city) => {
   });
 };
 
+const isNew = (dateStr) => {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays <= 3; // 3일 이내면 NEW 표시
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
 
@@ -318,6 +399,26 @@ const truncateText = (text, maxLength) => {
   return text.substring(0, maxLength) + "...";
 };
 
+// 공지사항 데이터 로드 함수
+const loadNotices = async () => {
+  try {
+    loadingNotices.value = true;
+
+    // 중요 공지사항과 최신 공지사항을 병렬로 가져오기
+    const [importantResponse, recentResponse] = await Promise.all([
+      noticeAPI.getImportantNotices(),
+      noticeAPI.getRecentNotices(5),
+    ]);
+
+    importantNotices.value = importantResponse.data.slice(0, 3); // 최대 3개
+    recentNotices.value = recentResponse.data;
+  } catch (error) {
+    console.error("공지사항 로드 오류:", error);
+  } finally {
+    loadingNotices.value = false;
+  }
+};
+
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
   await Promise.all([
@@ -326,6 +427,7 @@ onMounted(async () => {
     loadPopularCities(),
     loadUserReviews(),
     loadStatistics(),
+    loadNotices(),
   ]);
 });
 </script>
@@ -692,5 +794,51 @@ onMounted(async () => {
   .title-page-content h1 {
     font-size: 2rem;
   }
+}
+
+.notices-section {
+  padding: 60px 0;
+  background-color: #f8f9fa;
+}
+
+.important-notice-item {
+  padding: 0.5rem 0;
+}
+
+.important-notice-item:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.important-notice-item a:hover {
+  text-decoration: underline !important;
+}
+
+.list-group-item {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+}
+
+.list-group-item:first-child {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.list-group-item:last-child {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.notice-title {
+  font-weight: 500;
+  flex: 1;
+}
+
+.notice-meta {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
 }
 </style>

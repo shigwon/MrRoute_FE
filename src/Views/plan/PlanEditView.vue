@@ -285,7 +285,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import planAPI from "@/api/plan";
@@ -627,6 +627,12 @@ watch(dayCount, (newDayCount, oldDayCount) => {
 // 컴포넌트 마운트 시 여행 계획 상세 정보 불러오기
 onMounted(() => {
   fetchPlanDetail();
+});
+
+// 컴포넌트 언마운트 시 정리 (기본적인 정리만)
+onUnmounted(() => {
+  // 필요한 정리 작업이 있다면 여기에 추가
+  console.log("PlanEditView 컴포넌트가 언마운트되었습니다.");
 });
 </script>
 

@@ -31,7 +31,7 @@
             </div>
 
             <!-- 버튼 그룹 -->
-            <div class="d-flex justify-content-between mt-4">
+            <div class="d-flex justify-content-between mt-4 pt-4 border-top">
               <router-link to="/board" class="btn btn-secondary"> <i class="fas fa-list"></i> 목록 </router-link>
 
               <div v-if="isAuthor">
@@ -45,7 +45,10 @@
         </div>
       </div>
 
-      <!-- 댓글 기능은 추후 구현 가능 -->
+      <!-- 댓글 섹션 -->
+      <div class="mt-4">
+        <CommentSection :board-no="parseInt(route.params.bno)" ref="commentSection" />
+      </div>
     </div>
   </div>
 </template>
@@ -55,6 +58,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import boardAPI from "@/api/board";
+import CommentSection from "@/components/board/CommentSection.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -63,6 +67,7 @@ const authStore = useAuthStore();
 // 상태 관리
 const board = ref({});
 const loading = ref(true);
+const commentSection = ref(null);
 
 // 콘솔 로그를 추가하여 권한 확인
 const isAuthor = computed(() => {
@@ -92,7 +97,7 @@ const fetchBoardDetail = async () => {
     board.value = response.data;
   } catch (error) {
     console.error("게시글 상세 정보를 가져오는 중 오류 발생:", error);
-    // 오류 발생 시 목록으로 이동
+    alert("게시글을 불러오는 중 오류가 발생했습니다.");
     router.push("/board");
   } finally {
     loading.value = false;
@@ -100,7 +105,7 @@ const fetchBoardDetail = async () => {
 };
 
 const confirmDelete = () => {
-  if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
+  if (confirm("정말로 이 게시글을 삭제하시겠습니까?\n삭제된 게시글과 댓글은 복구할 수 없습니다.")) {
     deleteBoard();
   }
 };
@@ -172,5 +177,43 @@ onMounted(() => {
 .board-content {
   min-height: 300px;
   white-space: pre-line;
+  line-height: 1.8;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.badge {
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* 댓글 섹션을 위한 추가 스타일 */
+.mt-4 {
+  margin-top: 2rem !important;
+}
+
+/* 게시글과 댓글 사이의 구분선 */
+.border-top {
+  border-top: 1px solid #dee2e6 !important;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .board-detail-view .card-body {
+    padding: 1rem;
+  }
+
+  .board-content {
+    font-size: 1rem;
+  }
+
+  .d-flex.justify-content-between {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .d-flex.justify-content-between > div:last-child {
+    align-self: flex-end;
+  }
 }
 </style>

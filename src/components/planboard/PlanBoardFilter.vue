@@ -80,6 +80,24 @@
           </select>
         </div>
 
+        <!-- 내 게시글만 보기 (로그인한 사용자만) -->
+        <div v-if="authStore.isAuthenticated" class="col-md-4">
+          <label class="form-label">
+            <i class="fas fa-user me-1 text-success"></i>
+            게시글 필터
+          </label>
+          <div class="form-check form-switch mt-2">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="onlyMyPosts"
+              v-model="localFilters.onlyMyPosts"
+              @change="handleSearch"
+            />
+            <label class="form-check-label" for="onlyMyPosts"> 내가 작성한 게시글만 보기 </label>
+          </div>
+        </div>
+
         <!-- 여행 시작일 범위 -->
         <div class="col-md-6">
           <label class="form-label">
@@ -164,6 +182,9 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { useAuthStore } from "@/stores/auth";
+
+const authStore = useAuthStore();
 
 const props = defineProps({
   filters: {
@@ -176,7 +197,19 @@ const emit = defineEmits(["update-filters", "search", "reset"]);
 
 // 상태 관리
 const showAdvancedFilters = ref(false);
-const localFilters = ref({ ...props.filters });
+// localFilters에 onlyMyPosts 필드 추가
+const localFilters = ref({
+  keyword: "",
+  travelTheme: "",
+  destination: "",
+  startDateFrom: "",
+  startDateTo: "",
+  budgetMin: null,
+  budgetMax: null,
+  participantCount: null,
+  tagName: "",
+  onlyMyPosts: false, // 추가
+});
 
 // 빠른 필터 옵션
 const quickFilters = ref([
@@ -269,6 +302,7 @@ const handleSearch = () => {
   emit("search", { ...localFilters.value });
 };
 
+// handleReset 함수에도 추가
 const handleReset = () => {
   localFilters.value = {
     keyword: "",
@@ -280,6 +314,7 @@ const handleReset = () => {
     budgetMax: null,
     participantCount: null,
     tagName: "",
+    onlyMyPosts: false, // 추가
   };
   emit("reset");
 };

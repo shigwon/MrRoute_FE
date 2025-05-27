@@ -4,7 +4,7 @@
     <div class="container py-4">
       <!-- 헤더 섹션 -->
       <div class="page-header">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center" style="flex-direction: column">
           <div>
             <h1 class="mb-2">✈️ 나의 여행 계획</h1>
             <p class="text-muted mb-0">당신의 특별한 여행을 계획하고 관리하세요</p>

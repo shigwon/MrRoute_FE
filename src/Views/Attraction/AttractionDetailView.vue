@@ -108,9 +108,13 @@
           </div>
         </div>
         <div class="mt-3">
-          <button v-if="authStore.isAuthenticated" class="btn btn-primary" @click="addToPlan">
+          <button v-if="authStore.isAuthenticated" class="btn btn-primary me-2" @click="addToPlan">
             <i class="fas fa-plus"></i> 여행 계획에 추가
           </button>
+
+          <router-link v-if="authStore.isAuthenticated" to="/plans" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-map"></i> 내 여행 계획 보기
+          </router-link>
           <router-link v-else to="/login" class="btn btn-outline-primary">
             <i class="fas fa-sign-in-alt"></i> 로그인하여 여행 계획에 추가
           </router-link>
@@ -159,9 +163,27 @@
                 </router-link>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
               </div>
+              >
             </div>
           </div>
         </div>
+
+        <!-- 댓글 섹션 -->
+        <div class="comments-section mt-4">
+          <div class="card">
+            <div class="card-header bg-light">
+              <h4 class="mb-0">
+                <i class="fas fa-comments text-primary me-2"></i>
+                방문 후기 및 댓글
+              </h4>
+              <small class="text-muted">이 관광지에 대한 경험과 후기를 공유해주세요!</small>
+            </div>
+            <div class="card-body p-0">
+              <CommentSection :board-no="attraction.no" ref="commentSection" />
+            </div>
+          </div>
+        </div>
+
         <!-- 돌아가기 버튼 -->
         <div class="mt-4">
           <router-link to="/attractions" class="btn btn-secondary">
@@ -179,6 +201,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import planAPI from "@/api/plan";
 import attractionAPI from "@/api/attraction";
+// 기존 import 문들 뒤에 추가
+import CommentSection from "@/components/board/CommentSection.vue";
 
 // 2. 그 다음에 store와 router 등의 초기화를 합니다
 const route = useRoute();
@@ -249,9 +273,23 @@ const fetchUserPlans = async () => {
   try {
     loadingPlans.value = true;
     const response = await planAPI.getUserPlans();
-    userPlans.value = response.data;
+
+    console.log("사용자 여행 계획 목록:", response.data);
+
+    // 각 계획에 대해 세부 정보도 함께 로드 (필요한 경우)
+    if (response.data && Array.isArray(response.data)) {
+      userPlans.value = response.data.map((plan) => ({
+        ...plan,
+        details: plan.details || [], // details가 없으면 빈 배열로 초기화
+      }));
+    } else {
+      userPlans.value = [];
+    }
+
+    console.log("처리된 사용자 계획:", userPlans.value);
   } catch (error) {
     console.error("여행 계획 목록 조회 중 오류 발생:", error);
+    userPlans.value = [];
   } finally {
     loadingPlans.value = false;
   }
@@ -295,40 +333,95 @@ const initMap = () => {
   }
 };
 
-// 계획 선택 시 관광지 추가
+// AttractionDetailView.vue의 selectPlan 함수 및 fetchUserPlans 함수 수정
+// AttractionDetailView.vue의 selectPlan 함수를 다음으로 완전히 교체하세요
+
 const selectPlan = async (plan) => {
   try {
-    // 선택한 계획의 첫 번째 날에 관광지 추가
+    console.log("선택된 계획:", plan);
+
+    // 1. 먼저 최신 계획 데이터를 서버에서 가져오기
+    const planDetailResponse = await planAPI.getPlanDetail(plan.planId);
+    const currentPlan = planDetailResponse.data;
+
+    console.log("현재 계획 상세 정보:", currentPlan);
+    console.log("기존 details 개수:", currentPlan.details?.length || 0);
+
+    // 2. 기존 details가 없으면 빈 배열로 초기화
+    if (!Array.isArray(currentPlan.details)) {
+      currentPlan.details = [];
+    }
+
+    // 3. 이미 동일한 관광지가 있는지 확인
+    const existingDetail = currentPlan.details.find((detail) => detail.attractionId === attraction.value.no);
+
+    if (existingDetail) {
+      alert(`'${attraction.value.title}'은(는) 이미 해당 여행 계획에 포함되어 있습니다.`);
+      const modal = bootstrap.Modal.getInstance(document.getElementById("planSelectModal"));
+      modal.hide();
+      return;
+    }
+
+    // 4. 새로운 관광지 정보 생성
+    const maxOrderNo = currentPlan.details.length > 0 ? Math.max(...currentPlan.details.map((d) => d.orderNo || 0)) : 0;
+
     const newDetail = {
-      dayNumber: 1,
+      dayNumber: 1, // 기본적으로 1일차에 추가
       title: attraction.value.title,
-      description: "",
+      description: `${attraction.value.title} 방문`,
       visitTime: "",
       stayDuration: 60,
-      orderNo: 1,
+      orderNo: maxOrderNo + 1,
       attractionId: attraction.value.no,
     };
 
-    // 기존 계획에 일정 추가
-    const updatedPlan = { ...plan };
-    updatedPlan.details = [...plan.details, newDetail];
+    console.log("새로 추가할 detail:", newDetail);
 
+    // 5. 업데이트할 계획 데이터 구성 (기존 데이터 + 새 데이터)
+    const updatedPlan = {
+      planId: currentPlan.planId,
+      userId: currentPlan.userId,
+      title: currentPlan.title,
+      description: currentPlan.description,
+      startDate: currentPlan.startDate,
+      endDate: currentPlan.endDate,
+      details: [...currentPlan.details, newDetail], // 기존 details + 새 detail
+    };
+
+    console.log("업데이트할 계획:", updatedPlan);
+    console.log("업데이트 후 details 개수:", updatedPlan.details.length);
+
+    // 6. 서버에 업데이트 요청
     await planAPI.updatePlan(plan.planId, updatedPlan);
 
-    // 모달 닫기
+    // 7. 모달 닫기
     const modal = bootstrap.Modal.getInstance(document.getElementById("planSelectModal"));
     modal.hide();
 
-    // 성공 메시지
+    // 8. 성공 메시지
     alert(`'${attraction.value.title}'이(가) '${plan.title}' 계획에 추가되었습니다.`);
 
-    // 선택적으로 해당 여행 계획 페이지로 이동
+    // 9. 해당 여행 계획 페이지로 이동 (선택사항)
     if (confirm("해당 여행 계획 페이지로 이동하시겠습니까?")) {
       router.push(`/plans/${plan.planId}`);
     }
   } catch (error) {
     console.error("여행 계획에 관광지 추가 중 오류 발생:", error);
-    alert("여행 계획에 관광지를 추가하는 중 오류가 발생했습니다.");
+
+    // 구체적인 에러 메시지 표시
+    let errorMessage = "여행 계획에 관광지를 추가하는 중 오류가 발생했습니다.";
+
+    if (error.response) {
+      if (error.response.status === 403) {
+        errorMessage = "해당 여행 계획을 수정할 권한이 없습니다.";
+      } else if (error.response.status === 404) {
+        errorMessage = "여행 계획을 찾을 수 없습니다.";
+      } else if (error.response.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+    }
+
+    alert(errorMessage);
   }
 };
 

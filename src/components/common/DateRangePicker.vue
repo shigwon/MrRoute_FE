@@ -325,6 +325,44 @@ const setQuickDate = (days) => {
   emit("update:endDate", formatDateForInput(end));
 };
 
+// 4. DateRangePicker에서 emit되는 이벤트 처리 개선
+const handleDateUpdate = (field, value) => {
+  plan.value[field] = value;
+
+  // 양쪽 날짜가 모두 설정되었을 때만 계산 실행
+  if (plan.value.startDate && plan.value.endDate) {
+    calculateDays();
+  }
+};
+
+// 5. 더 안전한 날짜 계산 함수
+const calculateDays = () => {
+  if (!plan.value.startDate || !plan.value.endDate) {
+    return;
+  }
+
+  try {
+    const start = new Date(plan.value.startDate);
+    const end = new Date(plan.value.endDate);
+
+    // 유효한 날짜인지 확인
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      console.warn("유효하지 않은 날짜:", plan.value.startDate, plan.value.endDate);
+      return;
+    }
+
+    // 종료일이 시작일보다 이전인 경우 조정
+    if (end < start) {
+      plan.value.endDate = plan.value.startDate;
+      return;
+    }
+
+    const dayCount = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    console.log("계산된 여행 일수:", dayCount);
+  } catch (error) {
+    console.error("날짜 계산 중 오류:", error);
+  }
+};
 const clearDates = () => {
   startDate.value = null;
   endDate.value = null;
@@ -364,7 +402,6 @@ const formatDateForInput = (date) => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-
 
 // 선택이 완료된 경우 부모에게 전체 범위 전달
 watch([startDate, endDate], ([newStart, newEnd]) => {
